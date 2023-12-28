@@ -1,0 +1,54 @@
+# Room Page
+
+### About
+
+This is the main page of the website. The page will be used by both the Host and the Guest, the page will be rendered differently for both roles, based on the hostId property of the room.
+
+### Components
+
+- Music Player (Host Only)
+- Queue
+- Members
+
+### Services Used
+
+- Firestore Database
+- Websocket Server
+
+### Room Properties
+
+| Property Name | Type    | Description                                                                                                              |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| id            | String  | The ID of the room                                                                                                       |
+| hostId        | String  | The userId of the host                                                                                                   |
+| roomName      | String  | The name of the room                                                                                                     |
+| takeTurns     | Boolean | Status of **Take Turns**                                                                                                 |
+| doneMembers   | Array   | A list of userId's of the users whose songs have been played (Only used if the `takeTurns` attribute is set to **true**) |
+| members       | Array   | A list of userId's of the users that are in the room                                                                     |
+| queue         | Array   | A list of the songs in the queue                                                                                         |
+
+## Queue
+
+### About
+
+The queue is the list of songs the are up next. The current queue will be stored in the Firestore database. Each song item contains the following properties:
+| Property Name | Type | Details |
+| ------------- | ---- | ------- |
+| id | String | ID of the room |
+| userId | String | The userId of the user that selected the song |
+| username | String | The username of the previously mentioned user |
+| videoId | String | The ID of the youtube video, used to retrieve the video using Youtube's API |
+| videoThumbnail | String | A link to the thumbnail image. Used to display a preview thumbnail for the video in the queue |
+| videoTitle | String | Title of the video |
+
+### Adding songs
+
+Adding songs will be done through the Websocket Server. The process is as such:
+
+1. User adds a song
+2. Song details will be sent to the server via Websocket
+3. Host recieve the song properties via websocket
+4. Host runs the `addSong()` function using the properties in step 3
+5. Host updates the queue in the Firestore database
+
+<small>Note: The queue in the firestore database is just there for the user to view. All the updating to the queue is done by the Host. This is to prevent guests updating the queue with outdated information when adding songs.</small>
