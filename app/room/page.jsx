@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import useDB from "../components/useDB";
+import useDB from "../../hooks/useDB";
 
 export default function Page() {
     const [roomlist, setRoomlist] = useState([]);
