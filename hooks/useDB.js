@@ -105,8 +105,9 @@ const useDB = () => {
                 username: randomGuestNameGenerator(),
                 isGuest: true,
             };
-            const res = await addDoc(collection(firestore, "rooms"), data);
+            const res = await addDoc(collection(firestore, "users"), data);
             if (res.id) return { status: "success", userId: res.id };
+            return { status: "fail", message: "An Error Occured" };
         } catch (e) {
             console.error(e);
             return { status: "fail", message: e };

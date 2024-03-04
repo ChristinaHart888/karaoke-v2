@@ -37,7 +37,15 @@ export default function Room() {
             setErrorMessage("Please enter Email and Password");
         }
     };
-    const guestButtonHandler = () => {};
+    const guestButtonHandler = async () => {
+        let result = await loginGuest();
+        if (result?.status === "success") {
+            localStorage.setItem("userId", result.userId);
+            window.location.href = "./profile";
+        } else {
+            setErrorMessage(result?.message);
+        }
+    };
 
     return (
         <main className="">
