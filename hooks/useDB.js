@@ -145,12 +145,30 @@ const useDB = () => {
         }
     };
 
+    const getRoomDetails = async ({ roomId }) => {
+        try {
+            const docRef = doc(collection(firestore), "rooms", roomId);
+            const docSnapshot = await getDoc(docRef);
+
+            if (docSnapshot.exists()) {
+                const snapshot = docSnapshot.data();
+                return { result: "success", data: snapshot };
+            } else {
+                return { result: "fail", message: "Room does not exist" };
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
     return {
         getRooms,
         addUser,
         loginUser,
         loginGuest,
         getUserDetails,
+        getRoomDetails,
     };
 };
 

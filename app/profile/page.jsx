@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import ProfileForm from "./ProfileForm";
 import useDB from "@/hooks/useDB";
 import Popup from "../components/popup";
+import useMobileView from "@/hooks/useMobileView";
 
 export default function Profile() {
     const { getUserDetails } = useDB();
     const [user, setUser] = useState();
-    const [windowWidth, setWindowWidth] = useState();
     const [errorMessage, setErrorMessage] = useState();
 
-    //TODO: Convert windowWidth state to useMobileView
+    const { isMobileView } = useMobileView();
 
     useEffect(() => {
         let userId = localStorage.getItem("userId");
@@ -19,14 +19,7 @@ export default function Profile() {
         } else {
             window.location.href = "/login";
         }
-        updateDimensions();
-        window.addEventListener("resize", updateDimensions);
-        return () => window.removeEventListener("resize", updateDimensions);
     }, []);
-
-    const updateDimensions = () => {
-        setWindowWidth(window.innerWidth);
-    };
 
     const initUser = async (userId) => {
         let result = await getUserDetails(userId);
@@ -50,14 +43,14 @@ export default function Profile() {
                     width: "100%",
                     backgroundColor: "#444",
                     padding: "0.5em 1em",
-                    flexDirection: windowWidth >= 768 ? "row" : "column",
+                    flexDirection: !isMobileView ? "row" : "column",
                 }}
             >
                 <div
                     className="sidebar col-md-2 p-1 py-4 col-12"
                     style={{
                         display: "flex",
-                        flexDirection: windowWidth >= 768 ? "column" : "row",
+                        flexDirection: !isMobileView ? "column" : "row",
                     }}
                 >
                     <div
