@@ -114,6 +114,24 @@ const useDB = () => {
         }
     };
 
+    const getUserDetails = async (userId) => {
+        try {
+            console.log("uid", userId);
+            const docRef = doc(firestore, "users", userId);
+            const docSnapshot = await getDoc(docRef);
+
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                console.log("d", data);
+                return { result: "success", data: data };
+            } else {
+                return { result: "fail", message: "User does not exist" };
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     //Room Functions
     const getRooms = async (setRooms = null) => {
         try {
@@ -132,6 +150,7 @@ const useDB = () => {
         addUser,
         loginUser,
         loginGuest,
+        getUserDetails,
     };
 };
 
