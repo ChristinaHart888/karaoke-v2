@@ -28,7 +28,7 @@ const useDB = () => {
     };
 
     //User Functions
-    const addUser = async ({
+    const registerUser = async ({
         email,
         username,
         password,
@@ -116,13 +116,11 @@ const useDB = () => {
 
     const getUserDetails = async (userId) => {
         try {
-            console.log("uid", userId);
             const docRef = doc(firestore, "users", userId);
             const docSnapshot = await getDoc(docRef);
 
             if (docSnapshot.exists()) {
                 const data = docSnapshot.data();
-                console.log("d", data);
                 return { result: "success", data: data };
             } else {
                 return { result: "fail", message: "User does not exist" };
@@ -133,6 +131,23 @@ const useDB = () => {
     };
 
     //Room Functions
+    const createRoom = async ({ userId, username = "user", roomName }) => {
+        try {
+            //TODO: Authenticate userId
+            const newRoom = await addDoc(collection(firestore, "rooms"), {
+                host: userId,
+                roomName: roomName,
+                members: [{ userId, username }],
+            });
+            if (newRoom.id) {
+                return { result: "success", roomId: newRoom.id };
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
     const getRooms = async (setRooms = null) => {
         try {
             const querySnapshot = await getDocs(collection(firestore, "rooms"));
@@ -162,12 +177,25 @@ const useDB = () => {
         }
     };
 
+    const addUserToRoom = async ({ userId, roomId }) => {
+        try {
+            const roomData = await getRoomDetails({ roomId: roomId });
+            if (roomData.result === "success") {
+                roomData.data.members.push(userId);
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
     return {
         getRooms,
-        addUser,
+        registerUser,
         loginUser,
         loginGuest,
         getUserDetails,
+        createRoom,
         getRoomDetails,
     };
 };

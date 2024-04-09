@@ -4,6 +4,7 @@ import Link from "next/link";
 import Popup from "../components/popup";
 import styles from "../styles/login.module.css";
 import useDB from "@/hooks/useDB";
+import TextInput from "../components/TextInput";
 
 export default function Room() {
     const [isDisabled, setIsDisabled] = useState();
@@ -27,8 +28,10 @@ export default function Room() {
             if (result.status === "success") {
                 const userId = result.userId;
                 const role = result.role;
+                const username = result.username;
                 localStorage.setItem("userId", userId);
                 localStorage.setItem("role", role);
+                localStorage.setItem("username", username);
                 window.location.href = "./profile";
             } else {
                 setErrorMessage(result.message);
@@ -53,30 +56,16 @@ export default function Room() {
                 <div className={styles.loginBox}>
                     <h1>Login</h1>
                     <form>
-                        <div className={styles.inputContainer}>
-                            <input
-                                type="email"
-                                placeholder=""
-                                id="email"
-                                className={styles.formInput}
-                                onChange={(e) => setEmail(e.target.value)}
-                            ></input>
-                            <label htmlFor="email" className={styles.label}>
-                                Email
-                            </label>
-                        </div>
-                        <div className={styles.inputContainer}>
-                            <input
-                                type="password"
-                                placeholder=""
-                                id="password"
-                                className={styles.formInput}
-                                onChange={(e) => setPassword(e.target.value)}
-                            ></input>
-                            <label htmlFor="password" className={styles.label}>
-                                Password
-                            </label>
-                        </div>
+                        <TextInput
+                            onChange={setEmail}
+                            type="email"
+                            label={"Email"}
+                        ></TextInput>
+                        <TextInput
+                            onChange={setPassword}
+                            type="password"
+                            label={"Password"}
+                        ></TextInput>
                     </form>
                     <button
                         onClick={loginHandler}

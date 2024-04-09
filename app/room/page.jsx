@@ -1,31 +1,65 @@
 "use client";
 import React, { useState } from "react";
 import useDB from "../../hooks/useDB";
+import Modal from "react-modal";
+import ReactModal from "react-modal";
+import TextInput from "../components/TextInput";
 
 export default function Page() {
     const [roomlist, setRoomlist] = useState([]);
-    const { getRooms } = useDB();
+    const [newRoomName, setNewRoomName] = useState("");
+    const [modalIsOpen, setModalIsOpen] = useState(false);
+    const { getRooms, createRoom } = useDB();
 
     const getData = async () => {
         getRooms(setRoomlist);
+        //TODO: Check if user is alr in a room
     };
 
     useState(() => {
         getData();
     }, []);
 
+    const isInRoom = async () => {};
+
     const joinRoomHandler = async (roomID) => {
         let isLoggedIn = localStorage.getItem("userId");
         if (isLoggedIn) {
             //TODO: Validate Acc
             window.location.href = `/room/${roomID}`;
+            //TODO: Handle firebase
         } else {
             alert("You need to login bruv");
         }
     };
+
+    const createRoomHandler = async () => {
+        const userId = localStorage.getItem("userId");
+        const username = localStorage.getItem("username");
+
+        const res = await createRoom({
+            userId: userId,
+            username: username,
+            roomName,
+        });
+    };
+
     return (
-        <main className="container-fluid">
-            <h2>Room List</h2>
+        <main className="container">
+            <h1 style={{ color: "#dc3545" }}>Room List</h1>
+            <button onClick={() => setModalIsOpen(true)}>Add Room</button>
+            <ReactModal
+                isOpen={modalIsOpen}
+                onRequestClose={() => setModalIsOpen(false)}
+                shouldCloseOnOverlayClick={true}
+                shouldCloseOnEsc={true}
+            >
+                <h2>Create New Room</h2>
+                <TextInput
+                    onChange={setNewRoomName}
+                    label={"Room Name"}
+                ></TextInput>
+            </ReactModal>
             {roomlist?.map((room) => {
                 const roomData = room.data();
                 console.log("room Data:", roomData);

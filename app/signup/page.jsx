@@ -11,11 +11,11 @@ const SignUp = () => {
     const [password, setPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
-    const { addUser } = useDB();
+    const { registerUser } = useDB();
 
     const signUpHandler = async () => {
         if (username && password) {
-            const result = await addUser({
+            const result = await registerUser({
                 email: email,
                 username: username,
                 password: password,
