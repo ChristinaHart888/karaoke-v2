@@ -9,6 +9,7 @@ import {
     where,
     setDoc,
     addDoc,
+    onSnapshot,
 } from "firebase/firestore";
 import bcrypt from "bcryptjs-react";
 
@@ -106,7 +107,12 @@ const useDB = () => {
                 isGuest: true,
             };
             const res = await addDoc(collection(firestore, "users"), data);
-            if (res.id) return { status: "success", userId: res.id };
+            if (res.id)
+                return {
+                    status: "success",
+                    userId: res.id,
+                    username: data.username,
+                };
             return { status: "fail", message: "An Error Occured" };
         } catch (e) {
             console.error(e);
@@ -180,13 +186,40 @@ const useDB = () => {
     const addUserToRoom = async ({ userId, roomId }) => {
         try {
             const roomData = await getRoomDetails({ roomId: roomId });
-            if (roomData.result === "success") {
-                roomData.data.members.push(userId);
+            const currentMembers = roomData?.data?.members;
+            if (
+                roomData.result === "success" &&
+                Array.isArray(currentMembers) &&
+                currentMembers?.every((member) => member.userId != userId)
+            ) {
+                const newMembers = [...currentMembers, { userId }];
+                await updateDoc(doc(firestore, "rooms", roomId), {
+                    members: newMembers,
+                });
+                return { result: "success" };
+            } else {
+                return { result: "fail", message: "Room is not valid" };
             }
         } catch (e) {
             console.error(e);
             return { result: "fail", message: e };
         }
+    };
+
+    const getRoomLiveData = async ({ roomId, setRoomMembers }) => {
+        const docRef = doc(firestore, "rooms", roomId);
+        const unsubscribe = onSnapshot(docRef, (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                if (data) {
+                    setRoomMembers(data.members);
+                }
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
     };
 
     return {
@@ -197,6 +230,8 @@ const useDB = () => {
         getUserDetails,
         createRoom,
         getRoomDetails,
+        addUserToRoom,
+        getRoomLiveData,
     };
 };
 

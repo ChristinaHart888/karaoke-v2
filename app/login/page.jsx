@@ -44,6 +44,7 @@ export default function Room() {
         let result = await loginGuest();
         if (result?.status === "success") {
             localStorage.setItem("userId", result.userId);
+            localStorage.setItem("username", result.username);
             window.location.href = "./profile";
         } else {
             setErrorMessage(result?.message);

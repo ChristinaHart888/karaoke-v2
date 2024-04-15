@@ -33,15 +33,21 @@ export default function Page() {
         }
     };
 
-    const createRoomHandler = async () => {
+    const createRoomHandler = async (e) => {
+        e.preventDefault();
         const userId = localStorage.getItem("userId");
         const username = localStorage.getItem("username");
 
         const res = await createRoom({
             userId: userId,
             username: username,
-            roomName,
+            roomName: newRoomName,
         });
+
+        if (res.result === "success") {
+            window.location.href = `room/${res.roomId}`;
+        }
+        console.log(res);
     };
 
     return (
@@ -54,16 +60,20 @@ export default function Page() {
                 shouldCloseOnOverlayClick={true}
                 shouldCloseOnEsc={true}
             >
-                <h2>Create New Room</h2>
-                <TextInput
-                    onChange={setNewRoomName}
-                    label={"Room Name"}
-                ></TextInput>
+                <form onSubmit={createRoomHandler}>
+                    <h2>Create New Room</h2>
+                    <TextInput
+                        onChange={setNewRoomName}
+                        label={"Room Name"}
+                        required={true}
+                    ></TextInput>
+                    <button type="submit">Create</button>
+                </form>
             </ReactModal>
             {roomlist?.map((room) => {
                 const roomData = room.data();
                 console.log("room Data:", roomData);
-                const roomName = roomData.name;
+                const roomName = roomData.roomName;
                 return (
                     <div
                         key={room.id}
