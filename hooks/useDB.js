@@ -10,6 +10,7 @@ import {
     setDoc,
     addDoc,
     onSnapshot,
+    deleteDoc,
 } from "firebase/firestore";
 import bcrypt from "bcryptjs-react";
 
@@ -137,13 +138,17 @@ const useDB = () => {
     };
 
     //Room Functions
+
     const createRoom = async ({ userId, username = "user", roomName }) => {
         try {
             //TODO: Authenticate userId
+            const user = await getUserDetails(userId);
+            if (user.result !== "success") return user;
             const newRoom = await addDoc(collection(firestore, "rooms"), {
                 host: userId,
                 roomName: roomName,
                 members: [{ userId, username }],
+                queue: [],
             });
             if (newRoom.id) {
                 return { result: "success", roomId: newRoom.id };
@@ -168,7 +173,7 @@ const useDB = () => {
 
     const getRoomDetails = async ({ roomId }) => {
         try {
-            const docRef = doc(collection(firestore), "rooms", roomId);
+            const docRef = doc(collection(firestore, "rooms"), roomId);
             const docSnapshot = await getDoc(docRef);
 
             if (docSnapshot.exists()) {
@@ -183,7 +188,7 @@ const useDB = () => {
         }
     };
 
-    const addUserToRoom = async ({ userId, roomId }) => {
+    const addUserToRoom = async ({ userId, roomId, username }) => {
         try {
             const roomData = await getRoomDetails({ roomId: roomId });
             const currentMembers = roomData?.data?.members;
@@ -192,7 +197,7 @@ const useDB = () => {
                 Array.isArray(currentMembers) &&
                 currentMembers?.every((member) => member.userId != userId)
             ) {
-                const newMembers = [...currentMembers, { userId }];
+                const newMembers = [...currentMembers, { userId, username }];
                 await updateDoc(doc(firestore, "rooms", roomId), {
                     members: newMembers,
                 });
@@ -206,13 +211,41 @@ const useDB = () => {
         }
     };
 
-    const getRoomLiveData = async ({ roomId, setRoomMembers }) => {
+    const removeUserFromRoom = async ({ userId, roomId }) => {
+        try {
+            const roomData = await getRoomDetails({ roomId: roomId });
+            const currentMembers = roomData?.data?.members;
+            if (
+                roomData.result === "success" &&
+                Array.isArray(currentMembers)
+            ) {
+                console.log(currentMembers);
+                const newMembers = currentMembers.filter(
+                    (member) => member.userId !== userId
+                );
+                console.log("userId", userId);
+                console.log("new members", newMembers);
+                await updateDoc(doc(firestore, "rooms", roomId), {
+                    members: newMembers,
+                });
+                return { result: "success" };
+            } else {
+                return { result: "fail", message: "Room is not valid" };
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
+    const getRoomLiveData = async ({ roomId, setRoomMembers, setQueue }) => {
         const docRef = doc(firestore, "rooms", roomId);
         const unsubscribe = onSnapshot(docRef, (docSnapshot) => {
             if (docSnapshot.exists()) {
                 const data = docSnapshot.data();
                 if (data) {
                     setRoomMembers(data.members);
+                    setQueue && setQueue(data.queue);
                 }
             }
         });
@@ -220,6 +253,48 @@ const useDB = () => {
         return () => {
             unsubscribe();
         };
+    };
+
+    const deleteRoom = async ({ roomId, userId }) => {
+        const docRef = doc(firestore, "rooms", roomId);
+
+        try {
+            const roomDetails = await getRoomDetails({ roomId: roomId });
+            if (
+                roomDetails.result === "success" &&
+                roomDetails.data.host === userId
+            ) {
+                await deleteDoc(docRef);
+                return { result: "success" };
+            } else if (roomDetails.result !== "success") {
+                return { result: "fail", message: "Room Not Found" };
+            } else {
+                return { result: "fail", message: "Unauthorized" };
+            }
+        } catch (e) {
+            return {
+                result: "fail",
+                message: e,
+            };
+        }
+    };
+
+    const updateQueue = async ({ roomId, userId, newQueue }) => {
+        //TODO: Verify User is Host of room
+        const res = await getRoomDetails({ roomId });
+
+        //Check if room exists
+        if (res.result !== "success")
+            return { result: "fail", message: res.message };
+
+        //Check if User is Host
+        if (res?.data?.host !== userId) {
+            console.log(res?.data?.host, userId);
+            return { result: "fail", message: "Unauthorized Action" };
+        }
+
+        await updateDoc(doc(firestore, "rooms", roomId), { queue: newQueue });
+        return { result: "success" };
     };
 
     return {
@@ -230,8 +305,11 @@ const useDB = () => {
         getUserDetails,
         createRoom,
         getRoomDetails,
+        removeUserFromRoom,
         addUserToRoom,
         getRoomLiveData,
+        deleteRoom,
+        updateQueue,
     };
 };
 

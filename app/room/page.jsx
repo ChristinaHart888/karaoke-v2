@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import useDB from "../../hooks/useDB";
 import Modal from "react-modal";
 import ReactModal from "react-modal";
@@ -9,7 +9,9 @@ export default function Page() {
     const [roomlist, setRoomlist] = useState([]);
     const [newRoomName, setNewRoomName] = useState("");
     const [modalIsOpen, setModalIsOpen] = useState(false);
-    const { getRooms, createRoom } = useDB();
+    const userId = useRef();
+    const username = useRef();
+    const { getRooms, createRoom, addUserToRoom } = useDB();
 
     const getData = async () => {
         getRooms(setRoomlist);
@@ -18,6 +20,8 @@ export default function Page() {
 
     useState(() => {
         getData();
+        userId.current = localStorage.getItem("userId");
+        username.current = localStorage.getItem("username");
     }, []);
 
     const isInRoom = async () => {};
@@ -26,8 +30,15 @@ export default function Page() {
         let isLoggedIn = localStorage.getItem("userId");
         if (isLoggedIn) {
             //TODO: Validate Acc
-            window.location.href = `/room/${roomID}`;
             //TODO: Handle firebase
+            const res = await addUserToRoom({
+                userId: userId.current,
+                roomId: roomID,
+                username: username.current,
+            });
+            if (res.result === "success") {
+                window.location.href = `/room/${roomID}`;
+            }
         } else {
             alert("You need to login bruv");
         }
@@ -35,12 +46,10 @@ export default function Page() {
 
     const createRoomHandler = async (e) => {
         e.preventDefault();
-        const userId = localStorage.getItem("userId");
-        const username = localStorage.getItem("username");
 
         const res = await createRoom({
-            userId: userId,
-            username: username,
+            userId: userId.current,
+            username: username.current,
             roomName: newRoomName,
         });
 
@@ -72,7 +81,6 @@ export default function Page() {
             </ReactModal>
             {roomlist?.map((room) => {
                 const roomData = room.data();
-                console.log("room Data:", roomData);
                 const roomName = roomData.roomName;
                 return (
                     <div
