@@ -85,6 +85,7 @@ export default function Room({ params }) {
 
     useEffect(() => {
         updateQueueHandler();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queue]);
 
     const initRoom = async () => {
@@ -191,27 +192,35 @@ export default function Room({ params }) {
     return (
         <main className="container-fluid">
             <h2 style={{ color: "#dc3545" }}>{roomName ? roomName : "Room"}</h2>
-            <small style={{ color: isConnected ? "green" : "red" }}>
-                {isConnected ? "Connected" : "Disconnected"}
-            </small>
+            <div className="top" style={{ display: "flex", margin: "1em 0" }}>
+                <small style={{ color: isConnected ? "green" : "red" }}>
+                    {isConnected ? "Connected" : "Disconnected"}
+                </small>
+                <div
+                    className="buttonGroup"
+                    style={{ marginRight: "0", marginLeft: "auto" }}
+                >
+                    {!isConnected && (
+                        <button
+                            onClick={() => {
+                                socket.disconnect();
+                                socket.connect();
+                            }}
+                        >
+                            Re Connect
+                        </button>
+                    )}
+                    {isHost.current ? (
+                        <button onClick={deleteRoomHandler}>Delete Room</button>
+                    ) : (
+                        <button onClick={leaveRoomHandler}>Leave Room</button>
+                    )}
+                </div>
+            </div>
+
             {/* <small style={{ color: isHost.current ? "green" : "red" }}>
                 {isHost.current ? "Host" : "Not Host"}
             </small> */}
-            {!isConnected && (
-                <button
-                    onClick={() => {
-                        socket.disconnect();
-                        socket.connect();
-                    }}
-                >
-                    Re Connect
-                </button>
-            )}
-            {isHost.current ? (
-                <button onClick={deleteRoomHandler}>Delete Room</button>
-            ) : (
-                <button onClick={leaveRoomHandler}>Leave Room</button>
-            )}
 
             <div className="content">
                 <div className="search">
@@ -310,7 +319,9 @@ export default function Room({ params }) {
                     </>
                 )}
                 <div className="queue">
-                    {queue.length > 0 && <h4>Queue</h4>}
+                    {queue.length > 0 && (
+                        <h4 style={{ color: "#dc3545" }}>Queue</h4>
+                    )}
                     {queue.map((song, index) => {
                         return (
                             <div key={index}>
@@ -320,27 +331,39 @@ export default function Room({ params }) {
                                     width={320}
                                     height={180}
                                 ></Image>
-                                <p>{song.title}</p>
+                                <p style={{ color: "white" }}>{song.title}</p>
                             </div>
                         );
                     })}
                 </div>
                 <div className="members">
-                    <h4 style={{ marginTop: "0.5em" }}>Members</h4>
-                    {members.length > 0 &&
-                        members.map((member) => {
-                            return (
-                                <p
-                                    key={member.userId}
-                                    style={{
-                                        color: "white",
-                                        marginBottom: "0.5em",
-                                    }}
-                                >
-                                    {member.username}
-                                </p>
-                            );
-                        })}
+                    <h4 style={{ marginTop: "0.5em", color: "#dc3545" }}>
+                        Members
+                    </h4>
+                    <div
+                        className="memberNames"
+                        style={{
+                            backgroundColor: "#222",
+                            paddingTop: "0.2em ",
+                        }}
+                    >
+                        {members.length > 0 &&
+                            members.map((member) => {
+                                return (
+                                    <div
+                                        key={member.userId}
+                                        style={{
+                                            color: "white",
+                                            margin: "0.5em 1em",
+                                            borderBottom: "1px solid black",
+                                            padding: "0.5em",
+                                        }}
+                                    >
+                                        {member.username}
+                                    </div>
+                                );
+                            })}
+                    </div>
                 </div>
             </div>
             {/* End Content */}
