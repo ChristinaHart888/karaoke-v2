@@ -4,11 +4,13 @@ import useDB from "../../hooks/useDB";
 import Modal from "react-modal";
 import ReactModal from "react-modal";
 import TextInput from "../components/TextInput";
+import Card from "./Card";
 
 export default function Page() {
     const [roomlist, setRoomlist] = useState([]);
     const [newRoomName, setNewRoomName] = useState("");
     const [modalIsOpen, setModalIsOpen] = useState(false);
+    const [useClassicMode, setUseClassicMode] = useState(true);
     const userId = useRef();
     const username = useRef();
     const { getRooms, createRoom, addUserToRoom } = useDB();
@@ -51,6 +53,7 @@ export default function Page() {
             userId: userId.current,
             username: username.current,
             roomName: newRoomName,
+            classicMode: useClassicMode,
         });
 
         if (res.result === "success") {
@@ -76,6 +79,30 @@ export default function Page() {
                         label={"Room Name"}
                         required={true}
                     ></TextInput>
+                    <div className="mode">
+                        <h3>Mode</h3>
+                        <div
+                            className="modeSelector"
+                            style={{
+                                display: "flex",
+                                gap: "1em",
+                                marginBottom: "1em",
+                            }}
+                        >
+                            <Card
+                                title={"Classic Mode"}
+                                description={"The OG"}
+                                isSelcted={useClassicMode === true}
+                                onClickHandler={() => setUseClassicMode(true)}
+                            ></Card>
+                            <Card
+                                title={"Neo Mode"}
+                                description={"New && Improved"}
+                                isSelcted={useClassicMode !== true}
+                                onClickHandler={() => setUseClassicMode(false)}
+                            ></Card>
+                        </div>
+                    </div>
                     <button type="submit">Create</button>
                 </form>
             </ReactModal>

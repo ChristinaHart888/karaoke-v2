@@ -139,7 +139,12 @@ const useDB = () => {
 
     //Room Functions
 
-    const createRoom = async ({ userId, username = "user", roomName }) => {
+    const createRoom = async ({
+        userId,
+        username = "user",
+        roomName,
+        classicMode,
+    }) => {
         try {
             //TODO: Authenticate userId
             const user = await getUserDetails(userId);
@@ -148,6 +153,7 @@ const useDB = () => {
                 host: userId,
                 roomName: roomName,
                 members: [{ userId, username }],
+                classicMode: classicMode,
                 queue: [],
             });
             if (newRoom.id) {
@@ -168,23 +174,6 @@ const useDB = () => {
         } catch (e) {
             console.error(e);
             return { status: "fail", message: e };
-        }
-    };
-
-    const getRoomDetails = async ({ roomId }) => {
-        try {
-            const docRef = doc(collection(firestore, "rooms"), roomId);
-            const docSnapshot = await getDoc(docRef);
-
-            if (docSnapshot.exists()) {
-                const snapshot = docSnapshot.data();
-                return { result: "success", data: snapshot };
-            } else {
-                return { result: "fail", message: "Room does not exist" };
-            }
-        } catch (e) {
-            console.error(e);
-            return { result: "fail", message: e };
         }
     };
 
@@ -223,14 +212,29 @@ const useDB = () => {
                 const newMembers = currentMembers.filter(
                     (member) => member.userId !== userId
                 );
-                console.log("userId", userId);
-                console.log("new members", newMembers);
                 await updateDoc(doc(firestore, "rooms", roomId), {
                     members: newMembers,
                 });
                 return { result: "success" };
             } else {
                 return { result: "fail", message: "Room is not valid" };
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
+    const getRoomDetails = async ({ roomId }) => {
+        try {
+            const docRef = doc(collection(firestore, "rooms"), roomId);
+            const docSnapshot = await getDoc(docRef);
+
+            if (docSnapshot.exists()) {
+                const snapshot = docSnapshot.data();
+                return { result: "success", data: snapshot };
+            } else {
+                return { result: "fail", message: "Room does not exist" };
             }
         } catch (e) {
             console.error(e);

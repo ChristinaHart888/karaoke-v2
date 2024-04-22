@@ -1,0 +1,9 @@
+.card {
+    padding: 1em 0.5em;
+    width: 100%;
+    transition: 50ms ease-in-out;
+}
+
+.card:hover {
+    background-color: #eee;
+}
