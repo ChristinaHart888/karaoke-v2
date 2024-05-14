@@ -15,7 +15,7 @@ export default function Room({ params }) {
     const isHost = useRef(null);
     const userId = useRef();
     const username = useRef("Unnamed");
-    const { getRoomDetails } = useDB();
+    const { getRoomDetails, addUserToRoom } = useDB();
 
     useEffect(() => {
         initRoom();
@@ -66,11 +66,29 @@ export default function Room({ params }) {
             isHost.current =
                 localStorage.getItem("userId") == roomDetails.data.host;
             setRoomName(roomDetails.data.roomName);
+            //Add user to room if is not reflected in firebase
+            if (
+                roomDetails.data.members.every(
+                    (member) => member.userId != userId.current
+                )
+            ) {
+                const res = await addUserToRoom({
+                    userId: userId.current,
+                    roomId: roomId,
+                    username: username.current,
+                });
+                if (res.result !== "success") {
+                    console.error(res.message);
+                }
+            }
             if (isHost.current && roomDetails.data.queue.length > 0) {
                 isClassicMode.current = roomDetails.data.classicMode;
             }
         } else {
             alert(roomDetails.message);
+            if (roomDetails.message === "Room does not exist") {
+                window.location.href = "/room";
+            }
         }
     };
 
@@ -88,7 +106,7 @@ export default function Room({ params }) {
                 ></ClassicDashboard>
             ) : (
                 <NeoDashboard
-                    userId={userId.current}
+                    userId={userId}
                     username={username.current}
                     roomId={roomId}
                     isConnected={isConnected}

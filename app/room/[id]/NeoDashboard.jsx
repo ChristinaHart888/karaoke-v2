@@ -22,51 +22,103 @@ export default function NeoDashboard({
     const cachedResults = useMemo(() => new Map(), []);
     const [suggestedVideos, setSuggestedVideos] = useState();
     const [playing, setPlaying] = useState(true);
-    const [members, setMembers] = useState([]);
+    const membersRef = useRef([]);
     const [doneMembers, setDoneMembers] = useState([]);
+    const [membersState, setMembersState] = useState([]);
     const [currentMember, setCurrentMember] = useState();
+    const [playlist, setPlaylist] = useState([]);
 
-    const { deleteRoom, removeUserFromRoom, updateQueue, getRoomLiveData } =
-        useDB();
+    const {
+        deleteRoom,
+        removeUserFromRoom,
+        getRoomLiveData,
+        getUserDetails,
+        updateMembers,
+        editUserPlaylist,
+    } = useDB();
 
-    const handleAddSong = ({ link, title, thumbnail }) => {
+    const handleEditPlaylist = async ({ newPlaylist, clientUserId }) => {
+        console.log("ne wplaylist", newPlaylist, "isHost", isHost);
         if (isHost.current) {
-            //TODO: Edit member's queue
-        } else {
-            socket.emit("add-song", {
+            //TODO: Edit member's playlist
+            updateMembers({
                 roomId: roomId,
-                userId: userId,
+                userId: userId.current,
+                newMembers: membersRef.current,
+            });
+            const newMembers = membersRef.current.map((member) => {
+                if (member.userId === clientUserId) {
+                    return { ...member, playlist: newPlaylist };
+                }
+                return member;
+            });
+            // console.log(membersRef.current);
+            membersRef.current = newMembers;
+            //TODO: update members on firebase
+            console.log("handleEditPlaylis UserId", userId.current);
+            const res = await updateMembers({
+                roomId: roomId,
+                userId: userId.current,
+                newMembers: newMembers,
+            });
+            if (res.result != "success") {
+                console.error(res.message);
+            }
+        } else {
+            socket.emit("edit-playlist", {
+                roomId: roomId,
+                userId: userId.current,
                 username: username,
-                link: link,
-                title: title,
-                thumbnail: thumbnail,
+                playlist: newPlaylist,
             });
         }
     };
 
     useEffect(() => {
-        const onNewSong = (message) => {
+        const onNewPlaylist = (message) => {
             console.log("Message received:", message, "isHost", isHost.current);
             isHost.current &&
-                handleAddSong({
-                    link: message.link,
-                    thumbnail: message.thumbnail,
-                    title: message.title,
+                handleEditPlaylist({
+                    newPlaylist: message.playlist,
+                    clientUserId: message.userId,
                 });
         };
 
-        socket?.on("new-song", onNewSong);
+        socket?.on("new-playlist", onNewPlaylist);
 
-        //Get Real Time data on the room members
+        initPlaylist();
+
+        //Get Real Time data on the room membersRef
         getRoomLiveData({
-            setRoomMembers: setMembers,
+            setRoomMembers: (newMembers) => {
+                membersRef.current = newMembers;
+                setMembersState(newMembers);
+                console.log("newMems", newMembers);
+            },
             roomId: roomId,
         });
 
         return () => {
-            socket?.off("new-song", onNewSong);
+            socket?.off("new-song", onNewPlaylist);
         };
     }, []);
+
+    // useEffect(() => {
+    //     updateMembers({
+    //         roomId: roomId,
+    //         userId: userId.current,
+    //         newMembers: membersRef.current,
+    //     });
+    //     // setMembersState(membersRef.current);
+    //     // console.log("Changing member state");
+    // }, [membersRef]);
+
+    const initPlaylist = async () => {
+        const res = await getUserDetails(userId.current);
+        if (res?.result === "success" && res.data.playlist?.length > 0) {
+            setPlaylist(res.data.playlist);
+        }
+    };
 
     function changeImageUrlToMqDefault(url) {
         if (url.includes("mqdefault.jpg")) {
@@ -93,10 +145,10 @@ export default function NeoDashboard({
 
     const leaveRoomHandler = async () => {
         const res = await removeUserFromRoom({
-            userId: userId,
+            userId: userId.current,
             roomId: roomId,
         });
-        if (res.result === "success") {
+        if (res.result === "success" || res.message === "Room is not valid") {
             window.location.href = "/room";
             console.log("redir");
         } else {
@@ -108,7 +160,7 @@ export default function NeoDashboard({
         console.log("del room");
         const res = await deleteRoom({
             roomId: roomId,
-            userId: userId,
+            userId: userId.current,
         });
         if (res.result === "success") {
             window.location.href = "/room";
@@ -123,6 +175,22 @@ export default function NeoDashboard({
         //TODO: Find Next member
     };
 
+    const suggestedVideoHandler = ({ item, thumbnail, title }) => {
+        let newPlaylist = [...playlist];
+        newPlaylist.push({
+            link: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+            thumbnail: thumbnail,
+            title: title,
+        });
+        console.log("New playlist", newPlaylist);
+        setPlaylist(newPlaylist);
+        handleEditPlaylist({
+            newPlaylist: newPlaylist,
+            userId: userId.current,
+        });
+        setSearchTerm("");
+        setSuggestedVideos([]);
+    };
     return (
         <main className="container-fluid">
             <h2 style={{ color: "#dc3545" }}>{roomName ? roomName : "Room"}</h2>
@@ -204,16 +272,13 @@ export default function NeoDashboard({
                                     color: "white",
                                     cursor: "pointer",
                                 }}
-                                onClick={() => {
-                                    console.log(item);
-                                    handleAddSong({
-                                        link: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+                                onClick={() =>
+                                    suggestedVideoHandler({
+                                        item: item,
                                         thumbnail: newImageUrl,
                                         title: decodedTitle,
-                                    });
-                                    setSearchTerm("");
-                                    setSuggestedVideos([]);
-                                }}
+                                    })
+                                }
                             >
                                 <Image
                                     src={newImageUrl}
@@ -226,6 +291,38 @@ export default function NeoDashboard({
                         );
                     })}
                 {/* End Search */}
+                <div className="playlist">
+                    <h4 style={{ marginTop: "0.5em", color: "#dc3545" }}>
+                        Your Playlist
+                    </h4>
+                    <small>{userId.current}</small>
+
+                    {playlist.length > 0 && (
+                        <button
+                            onClick={() =>
+                                editUserPlaylist({
+                                    userId: userId.current,
+                                    playlist: playlist,
+                                })
+                            }
+                        >
+                            Update Playlist
+                        </button>
+                    )}
+                    {playlist.map((song, index) => {
+                        return (
+                            <div key={index}>
+                                <Image
+                                    src={song.thumbnail}
+                                    alt=""
+                                    width={320}
+                                    height={180}
+                                ></Image>
+                                <p style={{ color: "white" }}>{song.title}</p>
+                            </div>
+                        );
+                    })}
+                </div>
                 {currentMember?.playlist.length > 0 && isHost.current && (
                     <>
                         <div className="player" style={{ maxWidth: "640px" }}>
@@ -248,9 +345,9 @@ export default function NeoDashboard({
                         </div>
                     </>
                 )}
-                <div className="members">
+                <div className="membersRef">
                     <h4 style={{ marginTop: "0.5em", color: "#dc3545" }}>
-                        Members
+                        Members ({membersState.length})
                     </h4>
                     <div
                         className="memberNames"
@@ -259,8 +356,8 @@ export default function NeoDashboard({
                             paddingTop: "0.2em ",
                         }}
                     >
-                        {members.length > 0 &&
-                            members.map((member) => {
+                        {membersState.length > 0 &&
+                            membersState.map((member) => {
                                 return (
                                     <div
                                         key={member.userId}
@@ -272,6 +369,7 @@ export default function NeoDashboard({
                                         }}
                                     >
                                         {member.username}
+                                        {member.playlist?.length}
                                     </div>
                                 );
                             })}

@@ -32,7 +32,7 @@ export default function Page() {
         let isLoggedIn = localStorage.getItem("userId");
         if (isLoggedIn) {
             //TODO: Validate Acc
-            //TODO: Handle firebase
+            //TODO: Check if user is alr in a room
             const res = await addUserToRoom({
                 userId: userId.current,
                 roomId: roomID,
@@ -40,6 +40,8 @@ export default function Page() {
             });
             if (res.result === "success") {
                 window.location.href = `/room/${roomID}`;
+            } else {
+                console.error(res.message);
             }
         } else {
             alert("You need to login bruv");

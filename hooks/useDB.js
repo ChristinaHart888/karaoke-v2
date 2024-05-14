@@ -122,6 +122,8 @@ const useDB = () => {
     };
 
     const getUserDetails = async (userId) => {
+        if (!userId)
+            return { result: "fail", message: "No valid userId Provided" };
         try {
             const docRef = doc(firestore, "users", userId);
             const docSnapshot = await getDoc(docRef);
@@ -134,6 +136,20 @@ const useDB = () => {
             }
         } catch (e) {
             console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
+    const editUserPlaylist = async ({ userId, playlist }) => {
+        try {
+            const userDetails = await getUserDetails(userId);
+            if (userDetails.result !== "success") return userDetails;
+            await updateDoc(doc(firestore, "users", roomId), {
+                playlist: playlist,
+            });
+            return { result: "success" };
+        } catch (e) {
+            return { result: "fail", message: e };
         }
     };
 
@@ -181,6 +197,7 @@ const useDB = () => {
         try {
             const roomData = await getRoomDetails({ roomId: roomId });
             const currentMembers = roomData?.data?.members;
+
             if (
                 roomData.result === "success" &&
                 Array.isArray(currentMembers) &&
@@ -190,6 +207,7 @@ const useDB = () => {
                 await updateDoc(doc(firestore, "rooms", roomId), {
                     members: newMembers,
                 });
+                //TODO: Update Users
                 return { result: "success" };
             } else {
                 return { result: "fail", message: "Room is not valid" };
@@ -301,12 +319,33 @@ const useDB = () => {
         return { result: "success" };
     };
 
+    const updateMembers = async ({ roomId, userId, newMembers }) => {
+        //TODO: Verify User is Host of room
+        const res = await getRoomDetails({ roomId });
+
+        //Check if room exists
+        if (res.result !== "success")
+            return { result: "fail", message: res.message };
+
+        //Check if User is Host
+        if (res?.data?.host !== userId) {
+            console.log(res?.data?.host, userId);
+            return { result: "fail", message: "Unauthorized Action" };
+        }
+
+        await updateDoc(doc(firestore, "rooms", roomId), {
+            members: newMembers,
+        });
+        return { result: "success" };
+    };
+
     return {
         getRooms,
         registerUser,
         loginUser,
         loginGuest,
         getUserDetails,
+        editUserPlaylist,
         createRoom,
         getRoomDetails,
         removeUserFromRoom,
@@ -314,6 +353,7 @@ const useDB = () => {
         getRoomLiveData,
         deleteRoom,
         updateQueue,
+        updateMembers,
     };
 };
 
