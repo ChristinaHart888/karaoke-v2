@@ -260,6 +260,31 @@ const useDB = () => {
         }
     };
 
+    const getRoomMemberDetails = async ({ userId, roomId }) => {
+        try {
+            const docRef = doc(collection(firestore, "rooms"), roomId);
+            const docSnapshot = await getDoc(docRef);
+
+            if (docSnapshot.exists()) {
+                const snapshot = docSnapshot.data();
+                const members = snapshot.data.members;
+                const member = members.find(
+                    (member) => member.userId === userId
+                );
+                if (member === undefined) {
+                    return { result: "fail", message: "User does not exist" };
+                } else {
+                    return { result: "success", data: member };
+                }
+            } else {
+                return { result: "fail", message: "Room does not exist" };
+            }
+        } catch (e) {
+            console.error(e);
+            return { result: "fail", message: e };
+        }
+    };
+
     const getRoomLiveData = async ({ roomId, setRoomMembers, setQueue }) => {
         const docRef = doc(firestore, "rooms", roomId);
         const unsubscribe = onSnapshot(docRef, (docSnapshot) => {
@@ -348,6 +373,7 @@ const useDB = () => {
         editUserPlaylist,
         createRoom,
         getRoomDetails,
+        getRoomMemberDetails,
         removeUserFromRoom,
         addUserToRoom,
         getRoomLiveData,

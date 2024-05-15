@@ -8,6 +8,7 @@ import ReactPlayer from "react-player";
 import useDB from "@/hooks/useDB";
 import { query } from "firebase/firestore";
 import he from "he";
+import UserDropdown from "./UserDropdown";
 
 export default function NeoDashboard({
     userId,
@@ -43,7 +44,7 @@ export default function NeoDashboard({
             //TODO: Edit member's playlist
             updateMembers({
                 roomId: roomId,
-                userId: userId.current,
+                userId: userId,
                 newMembers: membersRef.current,
             });
             const newMembers = membersRef.current.map((member) => {
@@ -55,10 +56,10 @@ export default function NeoDashboard({
             // console.log(membersRef.current);
             membersRef.current = newMembers;
             //TODO: update members on firebase
-            console.log("handleEditPlaylis UserId", userId.current);
+            console.log("handleEditPlaylis UserId", userId);
             const res = await updateMembers({
                 roomId: roomId,
-                userId: userId.current,
+                userId: userId,
                 newMembers: newMembers,
             });
             if (res.result != "success") {
@@ -67,7 +68,7 @@ export default function NeoDashboard({
         } else {
             socket.emit("edit-playlist", {
                 roomId: roomId,
-                userId: userId.current,
+                userId: userId,
                 username: username,
                 playlist: newPlaylist,
             });
@@ -106,7 +107,7 @@ export default function NeoDashboard({
     // useEffect(() => {
     //     updateMembers({
     //         roomId: roomId,
-    //         userId: userId.current,
+    //         userId: userId,
     //         newMembers: membersRef.current,
     //     });
     //     // setMembersState(membersRef.current);
@@ -114,9 +115,13 @@ export default function NeoDashboard({
     // }, [membersRef]);
 
     const initPlaylist = async () => {
-        const res = await getUserDetails(userId.current);
+        let uid = localStorage.getItem("userId");
+        const res = await getUserDetails(uid);
         if (res?.result === "success" && res.data.playlist?.length > 0) {
             setPlaylist(res.data.playlist);
+        } else {
+            console.log("Something is off");
+            console.log(res);
         }
     };
 
@@ -145,7 +150,7 @@ export default function NeoDashboard({
 
     const leaveRoomHandler = async () => {
         const res = await removeUserFromRoom({
-            userId: userId.current,
+            userId: userId,
             roomId: roomId,
         });
         if (res.result === "success" || res.message === "Room is not valid") {
@@ -160,7 +165,7 @@ export default function NeoDashboard({
         console.log("del room");
         const res = await deleteRoom({
             roomId: roomId,
-            userId: userId.current,
+            userId: userId,
         });
         if (res.result === "success") {
             window.location.href = "/room";
@@ -186,7 +191,7 @@ export default function NeoDashboard({
         setPlaylist(newPlaylist);
         handleEditPlaylist({
             newPlaylist: newPlaylist,
-            userId: userId.current,
+            clientUserId: userId,
         });
         setSearchTerm("");
         setSuggestedVideos([]);
@@ -295,13 +300,13 @@ export default function NeoDashboard({
                     <h4 style={{ marginTop: "0.5em", color: "#dc3545" }}>
                         Your Playlist
                     </h4>
-                    <small>{userId.current}</small>
+                    <small>{userId}</small>
 
                     {playlist.length > 0 && (
                         <button
                             onClick={() =>
                                 editUserPlaylist({
-                                    userId: userId.current,
+                                    userId: userId,
                                     playlist: playlist,
                                 })
                             }
@@ -359,18 +364,10 @@ export default function NeoDashboard({
                         {membersState.length > 0 &&
                             membersState.map((member) => {
                                 return (
-                                    <div
+                                    <UserDropdown
                                         key={member.userId}
-                                        style={{
-                                            color: "white",
-                                            margin: "0.5em 1em",
-                                            borderBottom: "1px solid black",
-                                            padding: "0.5em",
-                                        }}
-                                    >
-                                        {member.username}
-                                        {member.playlist?.length}
-                                    </div>
+                                        member={member}
+                                    ></UserDropdown>
                                 );
                             })}
                     </div>

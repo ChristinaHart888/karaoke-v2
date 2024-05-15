@@ -106,7 +106,7 @@ export default function Room({ params }) {
                 ></ClassicDashboard>
             ) : (
                 <NeoDashboard
-                    userId={userId}
+                    userId={userId.current}
                     username={username.current}
                     roomId={roomId}
                     isConnected={isConnected}
